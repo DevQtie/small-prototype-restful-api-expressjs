@@ -30,13 +30,32 @@ const idleTOMilliValue = process.env.MSSQL_IDLETIMEOUTMILLIS;
 // Configuration for MSSQL connection
 const config = {
     user: process.env.MSSQL_USERNAME,
-    password: process.env.MSSQL_PASSWORD17,
+    password: process.env.MSSQL_PASSWORD,
     server: process.env.MSSQL_SERVER,
-    database: process.env.MSSQL_DATABASE_IMG,
+    database: process.env.MSSQL_DATABASE_2008,
     options: {
         encrypt: isEncrypt, // Enable encryption
         trustServerCertificate: trustServerCert, // Allow self-signed certificates
-        port: parseInt(portValue17),
+        port: parseInt(portValue),
+        cryptoCredentialsDetails: {
+            minVersion: tls.DEFAULT_MIN_VERSION
+        }
+    },
+    pool: {
+        max: parseInt(poolMax), // Maximum number of connections in the pool
+        min: parseInt(poolMin), // Minimum number of connections in the pool
+        idleTimeoutMillis: parseInt(idleTOMilliValue), // Time in milliseconds before an idle connection is closed
+    },
+};
+const configLogs = {
+    user: process.env.MSSQL_USERNAME,
+    password: process.env.MSSQL_PASSWORD,
+    server: process.env.MSSQL_SERVER,
+    database: process.env.MSSQL_DATABASE_2008_logs,
+    options: {
+        encrypt: isEncrypt, // Enable encryption
+        trustServerCertificate: trustServerCert, // Allow self-signed certificates
+        port: parseInt(portValue),
         cryptoCredentialsDetails: {
             minVersion: tls.DEFAULT_MIN_VERSION
         }
@@ -82,6 +101,17 @@ const poolPromise = new sql.ConnectionPool(config)
         process.exit(1);
     });
 
+const poolPromiseLogs = new sql.ConnectionPool(configLogs)
+    .connect()
+    .then(pool => {
+        console.log('Connected to MSSQL');
+        return pool;
+    })
+    .catch(err => {
+        console.error('Database Connection Failed!', err);
+        process.exit(1);
+    });
+
 // const poolPromise17 = null;
 
 const poolPromise17 = new sql.ConnectionPool(config17)
@@ -95,4 +125,4 @@ const poolPromise17 = new sql.ConnectionPool(config17)
         process.exit(1);
     });
 
-export { sql, poolPromise, poolPromise17 };
+export { sql, poolPromise, poolPromiseLogs, poolPromise17 };

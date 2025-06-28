@@ -19,7 +19,7 @@ import apiRoutes from './routes/api.routes.js';
 
 dotenv.config({ path: '.env' }); // Load environment variables
 
-const port = process.env.PORT || 430;
+const port = process.env.PORT || 431;
 
 const server = express();
 

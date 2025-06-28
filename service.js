@@ -17,9 +17,9 @@ svc.install();
 /* PLEASE OBSERVE THE BACKTICK IN THE NAME AND SCRIPT PATH IF YOU ENCOUNTERED EXCEPTION AND PREFER TO SET IT UP MANUALLY */
 
 const svc = new Service({
-    name: 'GlamGear API v2.0.0-Alpha',
-    description: 'Node application as Windows Service',
-    script: 'C:\\Users\\Administrator\\API\\GlamGearAPI_v2.0.0-Alpha\\VSCode\\server.js'
+    name: 'GlamGear_Admin_Web_API_v1.1.0-Alpha',
+    description: 'GlamGear admin web api Windows service',
+    script: 'C:\\Users\\Administrator\\API\\ggadminweb_api_v1.1.0-alpha\\ggadminweb_api\\server.js'
 });
 svc.on('install', () => svc.start());
 svc.install(); // to install on server side device

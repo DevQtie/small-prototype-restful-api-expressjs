@@ -1,4 +1,4 @@
-import { sql, poolPromise, poolPromise17 } from '../config/db.config.js';
+import { sql, poolPromise, poolPromiseLogs, poolPromise17 } from '../config/db.config.js';
 import dotenv from 'dotenv'
 import { createCipheriv, createDecipheriv } from 'crypto';
 import fs from 'fs';
@@ -51,7 +51,7 @@ const authenticate = async (req, res, next) => {
     }
 };//This is working, please don't modify the structure unless necessary.
 
-// Encryption function
+// Encryption function // I am using this to encrypt some data, simply it is used depending on my use case
 const encrypt = (text) => {
     const cipher = createCipheriv(algorithm, key, iv_val);
     let encrypted = cipher.update(text, process.env.ENCODING_STRUCTURE, process.env.ENCODING);
@@ -71,6 +71,49 @@ const decrypt = (encryptedData, ivHex) => {
     decrypted += decipher.final(process.env.ENCODING_STRUCTURE);
     return decrypted;
 };
+
+function isValidJson(input) {
+    try {
+        JSON.parse(input);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Assuming files is an array of file objects with binary img_data
+const fileList = async function (files) {
+    return await Promise.all(
+        files.map(async (file) => {
+            try {
+                // Compress the image data using sharp
+                const compressedImageBuffer = await sharp(file.img_data)
+                    .png({ compressionLevel: 9, quality: 1, progressive: false }) // Adjust settings as needed for your image format 
+                    .toBuffer();
+
+                // Convert the compressed binary data to base64
+                const compressedBase64 = compressedImageBuffer.toString('base64');
+
+                return {
+                    img_name: file.img_name,
+                    dt_stamp: file.dt_stamp,
+                    img_data: compressedBase64, // Use the compressed base64 data
+                    file_size: compressedImageBuffer.length // Update file size after compression
+                };
+            } catch (error) {
+                console.error(`Error compressing image ${file.img_name}:`, error);
+                return {
+                    img_name: file.img_name,
+                    dt_stamp: file.dt_stamp,
+                    img_data: null, // Or handle the error accordingly
+                    file_size: file.file_size // Keep original size or set to null
+                };
+            }
+        })
+    );
+};
+
+/* START OF MICROSOFT SQL SERVER 2017 */
 
 const logsErrorExceptions = async (err) => {
     // Convert the error object to a string representation
@@ -167,16 +210,108 @@ const deleteRandomText = async (req, res) => {
     }
 }//working&tested
 
-/* START OF OFFICIAL NODE.JS API CONTROLLER */
+/* END OF MICROSOFT SQL SERVER 2017 */
 
-function isValidJson(input) {
+/* START OF MICROSOFT SQL SERVER 2008 R2 */
+
+const signIn = async (req, res) => {
+    const { comp_email, password } = req.body;
+
     try {
-        JSON.parse(input);
-        return true;
-    } catch (e) {
-        return false;
+        const pool = await poolPromise;
+        const request = pool.request();
+        const result = await request.input('comp_email', sql.NVarChar(254), comp_email ?? null)
+            .input('password', sql.NVarChar(50), password ?? null)
+            .execute('rpiAPSAW_spLoginControlAccess');
+
+        if (result.recordset.length > 0) {
+            // Simplify the response
+            const spOutput = result.recordset[0]?.json_data || null; // json_data is the alias of a single message return from stored procedure
+            console.log(`RES: ${JSON.stringify(result.recordset)}`);
+            if (spOutput !== null) {
+                res.status(200).json(spOutput);
+            } else {
+                res.status(200).json(result.recordset);  // result - instance in dart: Map<String, dynamic> | result.recordset - instance in dart: List<dynamic>
+            }
+
+        } else {
+            res.status(200).json({ message: "Not available at this time." });
+
+        }
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+        await logsErrorExceptions('signIn: ' + err.message); //always double check the method name
     }
 }
+
+const logAdminWebAccess = async (req, res) => {
+    const { admin_id, username, full_name, comp_email, admin_role, login_status } = req.body;
+
+    try {
+        const pool = await poolPromise;
+        const request = pool.request();
+        const result = await request.input('admin_id', sql.NVarChar(254), admin_id ?? null)
+            .input('username', sql.NVarChar(50), username ?? null)
+            .input('full_name', sql.NVarChar(50), full_name ?? null)
+            .input('comp_email', sql.NVarChar(50), comp_email ?? null)
+            .input('admin_role', sql.NVarChar(50), admin_role ?? null)
+            .input('login_status', sql.NVarChar(50), login_status ?? null)
+            .execute('rpiAPSAW_spLoginControlAccessLogs');
+
+        if (result.recordset.length > 0) {
+            // Simplify the response
+            const spOutput = result.recordset[0]?.json_data || null; // json_data is the alias of a single message return from stored procedure
+            console.log(`RES: ${JSON.stringify(result.recordset)}`);
+            if (spOutput !== null) {
+                res.status(200).json(spOutput);
+            } else {
+                res.status(200).json(result.recordset);  // result - instance in dart: Map<String, dynamic> | result.recordset - instance in dart: List<dynamic>
+            }
+
+        } else {
+            res.status(200).json({ message: "Not available at this time." });
+
+        }
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+        await logsErrorExceptions('logAdminWebAccess: ' + err.message); //always double check the method name
+    }
+}
+
+const manageDeviceProperties = async (req, res) => {
+    const { admin_id, device_platform, device_state, device_model, device_version, function_key } = req.body;
+
+    try {
+        const pool = await poolPromiseLogs;
+        const request = pool.request();
+        const result = await request.input('admin_id', sql.VarChar(50), admin_id ?? null)
+            .input('device_platform', sql.VarChar(200), device_platform ?? null)
+            .input('device_state', sql.Bit, device_state ?? null)
+            .input('device_model', sql.VarChar(200), device_model ?? null)
+            .input('device_version', sql.VarChar(200), device_version ?? null)
+            .input('function_key', sql.VarChar(100), function_key ?? null)
+            .execute('rpiAPSAWL_spManageUserDeviceProperties');
+
+        if (result.recordset.length > 0) {
+            // Simplify the response
+            const spOutput = result.recordset[0]?.SP_OUTPUT || null; // SP_OUTPUT is the alias of a single message return from stored procedure
+            console.log(`RES: ${JSON.stringify(result.recordset)}`);
+            if (spOutput !== null) {
+                res.status(200).json(spOutput);
+            } else {
+                res.status(200).json(result.recordset);  // result - instance in dart: Map<String, dynamic> | result.recordset - instance in dart: List<dynamic>
+            }
+
+        } else {
+            res.status(200).json({ message: "Not available at this time." });
+        }
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+        await logsErrorExceptions('manageDeviceProperties: ' + err.message); //always double check the method name
+    }
+}
+
+/* END OF MICROSOFT SQL SERVER 2008 R2 */
 
 export {
     authenticate,
@@ -185,22 +320,8 @@ export {
     addRandomText,
     updateRandomText,
     deleteRandomText,
-    uploadMultiImageFilesWithText,
-    uploadTestImg,
-    retrieveTestImg,
-    retrieveLLCTestImage,
 
-    manageUser,
-    getPhilippineAddressName,
-    uploadFrontID,
-    retrieveFrontID,
-    retrieveLLCFrontID,
-    manageUserCodeRequest,
-    manageUserCodeRequest2,
-    partialSignUp,
-    accessRequest,
+    signIn,
+    logAdminWebAccess,
     manageDeviceProperties,
-    manageAddProduct,
-    manageClientProduct,
-    manageKYCTempData,
 };

@@ -8,6 +8,12 @@ Always update `package.json` and `service.js` files when you update the `Changel
 
 # Changelog
 
+## 1.1.0-alpha
+
+* Integrating node-semver (please check it out in the `package.json` file).
+* Logging of browser specifications fixed and added.
+* .env new port modification to avoid conflict access with the API for mobile app.
+
 ## 1.0.0-alpha
 
-* Initial API Structure
+* Initial API structure.
