@@ -8,6 +8,10 @@ Always update `package.json` and `service.js` files when you update the `Changel
 
 # Changelog
 
+## 1.1.1-alpha
+
+* Parameter `is_using_google` is added in `signIn` function to handle Google account sign in.
+
 ## 1.1.0-alpha
 
 * Integrating node-semver (please check it out in the `package.json` file).

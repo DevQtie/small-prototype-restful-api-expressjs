@@ -215,13 +215,14 @@ const deleteRandomText = async (req, res) => {
 /* START OF MICROSOFT SQL SERVER 2008 R2 */
 
 const signIn = async (req, res) => {
-    const { comp_email, password } = req.body;
+    const { comp_email, password, is_using_google } = req.body;
 
     try {
         const pool = await poolPromise;
         const request = pool.request();
         const result = await request.input('comp_email', sql.NVarChar(254), comp_email ?? null)
             .input('password', sql.NVarChar(50), password ?? null)
+            .input('is_using_google', sql.Bit, is_using_google ?? false)
             .execute('rpiAPSAW_spLoginControlAccess');
 
         if (result.recordset.length > 0) {
